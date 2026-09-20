@@ -74,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
         updateUi();
     }
 
-    // ---------------- Logic đồng hồ ----------------
+    // Tính thời gian bằng SystemClock
 
     private long elapsed() {
         if (!running) {
@@ -127,8 +127,6 @@ public class MainActivity extends AppCompatActivity {
         handler.removeCallbacks(ticker);
     }
 
-    // ---------------- Cập nhật giao diện ----------------
-
     private void updateTimeText() {
         long ms = elapsed();
 
@@ -167,8 +165,6 @@ public class MainActivity extends AppCompatActivity {
                 )
         );
     }
-
-    // ---------------- Vòng đời ----------------
 
     @Override
     protected void onStart() {
@@ -218,8 +214,6 @@ public class MainActivity extends AppCompatActivity {
 
         super.onDestroy();
     }
-
-    // ---------------- Lưu & khôi phục trạng thái ----------------
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
