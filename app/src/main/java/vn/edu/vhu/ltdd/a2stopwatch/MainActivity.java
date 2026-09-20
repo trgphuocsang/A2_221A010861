@@ -2,203 +2,163 @@ package vn.edu.vhu.ltdd.a2stopwatch;
 
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.util.Locale;
+
 public class MainActivity extends AppCompatActivity {
 
-    private TextView tvTime;
-    private TextView tvStatus;
-    private TextView tvRecreate;
-    private Button btnStartPause;
-    private Button btnReset;
+    private static final String TAG = "A2_221A010861";
 
-    private Handler handler = new Handler();
+    private static final String KEY_RUNNING = "running";
+    private static final String KEY_ACCUMULATED = "accumulated";
+    private static final String KEY_START = "start";
+    private static final String KEY_RECREATE = "recreate";
 
-    private long startTime = 0;
-    private long elapsedTime = 0;
+    private TextView tvTime, tvStatus, tvRecreate;
+    private Button btnStartPause, btnReset;
 
-    private boolean isRunning = false;
-
+    private boolean running = false;
+    private long accumulated = 0L;
+    private long startTime = 0L;
     private int recreateCount = 0;
 
-    private final Runnable timerRunnable = new Runnable() {
+    private final Handler handler = new Handler(Looper.getMainLooper());
+
+    private final Runnable ticker = new Runnable() {
         @Override
         public void run() {
-
-            if (isRunning) {
-
-                elapsedTime =
-                        SystemClock.elapsedRealtime() - startTime;
-
-                updateTime();
-
-                handler.postDelayed(this, 100);
-            }
+            updateTimeText();
+            handler.postDelayed(this, 100);
         }
     };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.activity_main);
 
         tvTime = findViewById(R.id.tvTime);
         tvStatus = findViewById(R.id.tvStatus);
         tvRecreate = findViewById(R.id.tvRecreate);
-
         btnStartPause = findViewById(R.id.btnStartPause);
         btnReset = findViewById(R.id.btnReset);
 
-        recreateCount++;
-
         if (savedInstanceState != null) {
+            running = savedInstanceState.getBoolean(KEY_RUNNING);
+            accumulated = savedInstanceState.getLong(KEY_ACCUMULATED);
+            startTime = savedInstanceState.getLong(KEY_START);
+            recreateCount = savedInstanceState.getInt(KEY_RECREATE) + 1;
 
-            elapsedTime =
-                    savedInstanceState.getLong(
-                            "elapsedTime", 0
-                    );
-
-            isRunning =
-                    savedInstanceState.getBoolean(
-                            "isRunning", false
-                    );
+            Log.d(TAG, "onCreate: KHÔI PHỤC trạng thái");
+        } else {
+            Log.d(TAG, "onCreate: khởi tạo mới");
         }
-
-        updateTime();
-        updateStatus();
-        updateRecreateCount();
 
         btnStartPause.setOnClickListener(v -> {
-
-            if (isRunning) {
-                pauseTimer();
+            if (running) {
+                pauseStopwatch();
             } else {
-                startTimer();
+                startStopwatch();
             }
-
         });
 
-        btnReset.setOnClickListener(v -> resetTimer());
+        btnReset.setOnClickListener(v -> resetStopwatch());
 
-        if (isRunning) {
+        updateUi();
+    }
 
-            startTime =
-                    SystemClock.elapsedRealtime()
-                            - elapsedTime;
+    // ---------------- Logic đồng hồ ----------------
 
-            handler.post(timerRunnable);
+    private long elapsed() {
+        if (!running) {
+            return accumulated;
         }
+
+        return accumulated +
+                (SystemClock.elapsedRealtime() - startTime);
     }
 
-    private void startTimer() {
+    private void startStopwatch() {
+        running = true;
+        startTime = SystemClock.elapsedRealtime();
 
-        isRunning = true;
+        startTicking();
+        updateUi();
 
-        startTime =
-                SystemClock.elapsedRealtime()
-                        - elapsedTime;
-
-        btnStartPause.setText(R.string.pause);
-
-        tvStatus.setText(
-                R.string.status_running
-        );
-
-        handler.post(timerRunnable);
+        Log.i(TAG, "BẮT ĐẦU đếm giờ");
     }
 
-    private void pauseTimer() {
+    private void pauseStopwatch() {
+        accumulated +=
+                SystemClock.elapsedRealtime() - startTime;
 
-        elapsedTime =
-                SystemClock.elapsedRealtime()
-                        - startTime;
+        running = false;
 
-        isRunning = false;
+        stopTicking();
+        updateUi();
 
-        handler.removeCallbacks(timerRunnable);
-
-        btnStartPause.setText(R.string.start);
-
-        tvStatus.setText(
-                R.string.status_paused
-        );
-
-        updateTime();
+        Log.i(TAG, "TẠM DỪNG tại " + accumulated + "ms");
     }
 
-    private void resetTimer() {
+    private void resetStopwatch() {
+        running = false;
+        accumulated = 0L;
+        startTime = 0L;
 
-        isRunning = false;
+        stopTicking();
+        updateUi();
 
-        elapsedTime = 0;
-
-        handler.removeCallbacks(timerRunnable);
-
-        btnStartPause.setText(R.string.start);
-
-        tvStatus.setText(
-                R.string.status_paused
-        );
-
-        updateTime();
+        Log.i(TAG, "ĐẶT LẠI về 00:00.0");
     }
 
-    private void updateTime() {
+    private void startTicking() {
+        handler.removeCallbacks(ticker);
+        handler.post(ticker);
+    }
 
-        long totalTenths =
-                elapsedTime / 100;
+    private void stopTicking() {
+        handler.removeCallbacks(ticker);
+    }
 
-        long minutes =
-                totalTenths / 600;
+    // ---------------- Cập nhật giao diện ----------------
 
-        long seconds =
-                (totalTenths / 10) % 60;
+    private void updateTimeText() {
+        long ms = elapsed();
 
-        long tenths =
-                totalTenths % 10;
+        long phut = ms / 60000;
+        long giay = (ms % 60000) / 1000;
+        long phanMuoi = (ms % 1000) / 100;
 
-        String time =
+        tvTime.setText(
                 String.format(
+                        Locale.getDefault(),
                         "%02d:%02d.%d",
-                        minutes,
-                        seconds,
-                        tenths
-                );
-
-        tvTime.setText(time);
+                        phut,
+                        giay,
+                        phanMuoi
+                )
+        );
     }
 
-    private void updateStatus() {
+    private void updateUi() {
+        updateTimeText();
 
-        if (isRunning) {
+        btnStartPause.setText(
+                running ? R.string.pause : R.string.start
+        );
 
-            tvStatus.setText(
-                    R.string.status_running
-            );
-
-            btnStartPause.setText(
-                    R.string.pause
-            );
-
-        } else {
-
-            tvStatus.setText(
-                    R.string.status_paused
-            );
-
-            btnStartPause.setText(
-                    R.string.start
-            );
-        }
-    }
-
-    private void updateRecreateCount() {
+        tvStatus.setText(
+                running
+                        ? R.string.status_running
+                        : R.string.status_paused
+        );
 
         tvRecreate.setText(
                 getString(
@@ -208,34 +168,84 @@ public class MainActivity extends AppCompatActivity {
         );
     }
 
+    // ---------------- Vòng đời ----------------
+
     @Override
-    protected void onSaveInstanceState(Bundle outState) {
+    protected void onStart() {
+        super.onStart();
+        Log.d(TAG, "onStart");
+    }
 
-        if (isRunning) {
+    @Override
+    protected void onResume() {
+        super.onResume();
 
-            elapsedTime =
-                    SystemClock.elapsedRealtime()
-                            - startTime;
+        Log.d(TAG, "onResume");
+
+        if (running) {
+            startTicking();
         }
 
-        outState.putLong(
-                "elapsedTime",
-                elapsedTime
-        );
+        updateUi();
+    }
 
-        outState.putBoolean(
-                "isRunning",
-                isRunning
-        );
+    @Override
+    protected void onPause() {
+        super.onPause();
 
-        super.onSaveInstanceState(outState);
+        stopTicking();
+
+        Log.d(TAG, "onPause");
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.d(TAG, "onStop");
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        Log.d(TAG, "onRestart");
     }
 
     @Override
     protected void onDestroy() {
+        stopTicking();
 
-        handler.removeCallbacks(timerRunnable);
+        Log.d(TAG, "onDestroy");
 
         super.onDestroy();
+    }
+
+    // ---------------- Lưu & khôi phục trạng thái ----------------
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        outState.putBoolean(KEY_RUNNING, running);
+        outState.putLong(KEY_ACCUMULATED, accumulated);
+        outState.putLong(KEY_START, startTime);
+        outState.putInt(KEY_RECREATE, recreateCount);
+
+        Log.d(
+                TAG,
+                "onSaveInstanceState – đã lưu "
+                        + elapsed() + "ms vào Bundle"
+        );
+    }
+
+    @Override
+    protected void onRestoreInstanceState(
+            Bundle savedInstanceState
+    ) {
+        super.onRestoreInstanceState(savedInstanceState);
+
+        Log.d(
+                TAG,
+                "onRestoreInstanceState"
+        );
     }
 }
