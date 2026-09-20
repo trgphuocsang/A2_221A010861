@@ -59,13 +59,41 @@
             android:layout_weight="1"
             android:text="@string/reset" />
 
+        <Button
+            android:id="@+id/btnLap"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:text="Vòng" />
     </LinearLayout>
+
+    <CheckBox
+        android:id="@+id/cbStopWhenBackground"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Dừng khi ra nền" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:layout_weight="1">
+
+        <TextView
+            android:id="@+id/tvLaps"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="16sp" />
+
+    </ScrollView>
 
     <TextView
         android:id="@+id/tvRecreate"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="8dp"
         android:textSize="14sp" />
 
 </LinearLayout>
