@@ -1,5 +1,8 @@
 # A2_221A010861
 
+Họ tên: Trương Phước Sang
+MSSV: 221A010861
+
 ## Bài nâng cao
 
 - NC1: Nút Vòng (Lap)
